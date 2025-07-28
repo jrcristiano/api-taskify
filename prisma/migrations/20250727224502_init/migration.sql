@@ -6,7 +6,6 @@ CREATE TABLE "users" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -27,7 +26,6 @@ CREATE TABLE "tasks" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "userId" INTEGER NOT NULL,
     "statusId" INTEGER NOT NULL DEFAULT 1,
-    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "tasks_pkey" PRIMARY KEY ("id")
 );

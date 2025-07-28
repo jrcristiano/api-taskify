@@ -4,7 +4,6 @@ import * as bcrypt from 'bcrypt';
 import { LoginUserDto } from './dto/login.user.dto';
 import { RegisterUserDto } from './dto/register.user.dto';
 import { UserService } from '../user/user.service';
-import { HttpStatusCode } from 'src/common/enums/http.status.code.enum';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +20,7 @@ export class AuthService {
 		const user = await this.userService.findOneByEmail(loginUserDto.email);
 
 		if (!user) {
-			throw new UnauthorizedException('E-mail address not registered.');
+			throw new UnauthorizedException('E-mail inválido.');
 		}
 
 		const isPasswordValid = await bcrypt.compare(
@@ -30,7 +29,7 @@ export class AuthService {
 		);
 
 		if (!isPasswordValid) {
-			throw new UnauthorizedException('Incorrect password.');
+			throw new UnauthorizedException('Senha incorreta.');
 		}
 
 		const payload = {
@@ -40,6 +39,12 @@ export class AuthService {
 
 		return {
 			access_token: this.jwtService.sign(payload),
+			user: {
+				id: user.id,
+				name: user.name,
+				lastname: user.lastname,
+				email: user.email,
+			},
 		};
 	}
 }

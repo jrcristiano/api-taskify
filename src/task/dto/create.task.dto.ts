@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsInt, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateTaskDto {
@@ -7,6 +7,7 @@ export class CreateTaskDto {
     description: 'Título da tarefa',
   })
   @IsString()
+	@MinLength(2)
   title: string;
 
   @ApiProperty({

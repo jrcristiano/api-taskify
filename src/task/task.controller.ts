@@ -3,13 +3,13 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UseGuards,
   Request,
   Query,
   HttpCode,
+	Put,
 } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.auth.guard';
@@ -26,6 +26,8 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
+import { TaskStatus } from 'src/common/enums/task.status.enum';
+import { SortOrder } from 'src/common/enums/sort.order.enum';
 
 @ApiBearerAuth()
 @ApiTags('Tasks')
@@ -47,16 +49,27 @@ export class TaskController {
 
   @Get()
   @ApiOperation({ summary: 'Listar tarefas paginadas' })
+	@ApiQuery({ name: 'search', required: false, example: 'Tarefa 1' })
+	@ApiQuery({ name: 'status', required: false, example: 1 })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'perPage', required: false, example: 10 })
-  @ApiQuery({ name: 'withTrashed', required: false, example: 'false' })
   paginate(
     @Request() req: IAuthenticatedRequest,
+		@Query('status') status = TaskStatus.All,
+		@Query('order') order = SortOrder.DESC,
+		@Query('sort') sort = 'createdAt',
+		@Query('search') search = '',
     @Query('page') page = 1,
     @Query('perPage') perPage = 10,
-    @Query('withTrashed') withTrashed = 'false',
   ) {
-    return this.taskService.paginate(req.user.id, page, perPage, withTrashed);
+    return this.taskService.paginate(req.user.id, {
+			status,
+			search,
+			page,
+			perPage,
+			order,
+			sort,
+		});
   }
 
   @Get(':id')
@@ -66,18 +79,17 @@ export class TaskController {
   findOne(
     @Request() req: IAuthenticatedRequest,
     @Param('id') id: string,
-    @Query('withTrashed') withTrashed = 'false',
   ) {
-    return this.taskService.findOne(req.user.id, +id, withTrashed);
+    return this.taskService.findOne(req.user.id, +id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Atualizar uma tarefa por ID' })
   @ApiParam({ name: 'id', type: Number })
   @ApiBody({ type: UpdateTaskDto })
   update(
     @Request() req: IAuthenticatedRequest,
-    @Param('id') id: string,
+    @Param('id') id: number,
     @Body() updateTaskDto: UpdateTaskDto,
   ) {
     return this.taskService.update(req.user.id, +id, updateTaskDto);
@@ -93,39 +105,5 @@ export class TaskController {
     @Param('id') id: string,
   ) {
     return this.taskService.delete(req.user.id, +id);
-  }
-
-  @Delete(':id/force-delete')
-  @HttpCode(HttpStatusCode.NoContent)
-  @ApiOperation({ summary: 'Forçar deleção definitiva da tarefa' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiResponse({ status: 204, description: 'Tarefa deletada permanentemente.' })
-  forceDelete(
-    @Request() req: IAuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
-    return this.taskService.forceDelete(req.user.id, +id);
-  }
-
-  @Post(':id/restore')
-  @HttpCode(HttpStatusCode.OK)
-  @ApiOperation({ summary: 'Restaurar uma tarefa deletada' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiResponse({ status: 200, description: 'Tarefa restaurada com sucesso.' })
-  async restore(
-    @Param('id') id: number,
-    @Request() req: IAuthenticatedRequest,
-  ) {
-    return this.taskService.restore(req.user.id, id);
-  }
-
-  @Post('restore-all')
-  @HttpCode(HttpStatusCode.OK)
-  @ApiOperation({ summary: 'Restaurar todas as tarefas deletadas' })
-  @ApiResponse({ status: 200, description: 'Todas as tarefas restauradas.' })
-  async restoreAll(
-    @Request() req: IAuthenticatedRequest,
-  ) {
-    return this.taskService.restoreAll(req.user.id);
   }
 }

@@ -4,6 +4,8 @@ import { CreateTaskDto } from './dto/create.task.dto';
 import { UpdateTaskDto } from './dto/update.task.dto';
 import { paginate } from 'src/common/pagination';
 import { IPaginationOptions } from 'src/common/interfaces/pagination.options.interface';
+import { QueryParams } from 'src/common/interfaces/query.params.interface';
+import { TaskStatus } from 'src/common/enums/task.status.enum';
 
 @Injectable()
 export class TaskService {
@@ -20,17 +22,54 @@ export class TaskService {
 		});
 	}
 
-	async paginate(userId: number, page = 1, perPage = 10, withTrashed = 'false') {
+	async paginate(
+		userId: number, {
+			status,
+			search,
+			page,
+			perPage,
+			withTrashed,
+			order,
+			sort,
+		}: QueryParams) {
 		const paginationOptions: IPaginationOptions = {
 			page,
 			perPage,
 		};
 
-		const clausule = {
+		let clausule = {
 			...this.getRelations(),
 			where: {
 				userId,
 			},
+			orderBy: {
+				[sort || 'createdAt']: order || 'desc',
+			},
+		}
+
+		const statusId = Number(status) as TaskStatus;
+
+		if (status != TaskStatus.All) {
+			clausule = {
+				...clausule,
+				where: {
+					...clausule.where,
+					statusId,
+				} as any
+			}
+		}
+
+		if (search) {
+			clausule = {
+				...clausule,
+				where: {
+					...clausule.where,
+					title: {
+						contains: search,
+						mode: 'insensitive',
+					},
+				} as any
+			}
 		}
 
 		if (withTrashed === 'false') {
@@ -38,7 +77,6 @@ export class TaskService {
 				...clausule,
 				where: {
 					...clausule.where,
-					deletedAt: null,
 				},
 			});
 		}
@@ -59,7 +97,6 @@ export class TaskService {
 				...clausule,
 				where: {
 					...clausule.where,
-					deletedAt: null,
 				},
 				orderBy: { createdAt: 'desc' },
 			});
@@ -71,11 +108,10 @@ export class TaskService {
 		});
 	}
 
-	async findOne(userId: number, id: number, withTrashed = 'false') {
+	async findOne(userId: number, id: number) {
 		const whereClause = {
 			id,
 			userId,
-			...(withTrashed === 'false' ? { deletedAt: null } : {}),
 		};
 
 		const task = await this.prisma.task.findFirst({
@@ -90,8 +126,8 @@ export class TaskService {
 		return task;
 	}
 
-	async update(userId: number, id: number, updateTaskDto: UpdateTaskDto, withTrashed = 'false') {
-		await this.findOne(userId, id, withTrashed);
+	async update(userId: number, id: number, updateTaskDto: UpdateTaskDto) {
+		await this.findOne(userId, id);
 
 		return this.prisma.task.update({
 			where: {
@@ -102,68 +138,12 @@ export class TaskService {
 		});
 	}
 
-	async delete(userId: number, id: number, withTrashed = 'false') {
-		await this.findOne(userId, id, withTrashed);
-
-		await this.prisma.task.update({
-			where: {
-				id,
-				userId,
-			},
-			data: {
-				deletedAt: new Date(),
-			},
-		});
-	}
-
-	async forceDelete(userId: number, id: number, withTrashed = 'false') {
-		await this.findOne(userId, id, withTrashed);
+	async delete(userId: number, id: number) {
+		await this.findOne(userId, id);
 
 		await this.prisma.task.delete({
 			where: { id },
 		});
-	}
-
-	async restore(userId: number, id: number) {
-		const task = await this.prisma.task.findFirst({
-			where: {
-				id,
-				userId,
-				deletedAt: { not: null },
-			},
-		});
-
-		if (!task) {
-			throw new NotFoundException('Task not found or not deleted');
-		}
-
-		return this.prisma.task.update({
-			where: { id },
-			data: {
-				deletedAt: null,
-			},
-		});
-	}
-
-	async restoreAll(userId: number) {
-		const result = await this.prisma.task.updateMany({
-			where: {
-				userId,
-				deletedAt: { not: null },
-			},
-			data: {
-				deletedAt: null,
-			},
-		});
-
-		if (result.count === 0) {
-			throw new NotFoundException('No deleted tasks found to restore');
-		}
-
-		return {
-			message: `${result.count} tasks restored successfully`,
-			count: result.count,
-		};
 	}
 
 	private getRelations() {
