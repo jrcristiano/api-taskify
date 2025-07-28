@@ -7,10 +7,11 @@
 ## 🛠️ Como rodar o projeto
 
 - 1 - **docker-compose up --build -d**
-- 2 - **docker exec -it taskify_api sh**
-- 3 - Dentro do container taskify_api, rode: **npx prisma migrate dev && npm run seed**
-- 4 - Para acessar a api: **http://localhost:3000/tasks**
-- 5 - Para acessar o swagger acesse: **http://localhost:3000/api-docs**
+- 2 - **cp .env.example .env** deixei informações de exemplo em .env.example para facilitar a iniciação do projeto
+- 3 - **docker exec -it taskify_api sh**
+- 4 - Dentro do container taskify_api, rode: **npx prisma migrate dev && npm run seed**
+- 5 - Para acessar a api: **http://localhost:3000/tasks**
+- 6 - Para acessar o swagger acesse: **http://localhost:3000/api-docs** (opcional)
 
 
 # 📌 Rotas da API - Tasks
